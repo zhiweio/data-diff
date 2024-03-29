@@ -43,6 +43,7 @@ vertica-python = {version="*", optional=true}
 urllib3 = "<2"
 oracledb = {version = "*", optional=true}
 pyodbc = {version=">=4.0.39", optional=true}
+pymssql = {version=">=2.2.11", optional=true}
 typing-extensions = ">=4.0.1"
 attrs = ">=23.1.0"
 mashumaro = {version = ">=2.9,<3.11.0", extras = ["msgpack"]}
@@ -74,7 +75,7 @@ redshift = ["psycopg2"]
 snowflake = ["snowflake-connector-python", "cryptography"]
 presto = ["presto-python-client"]
 oracle = ["oracledb"]
-mssql = ["pyodbc"]
+mssql = ["pyodbc", "pymssql"]
 # databricks = ["databricks-sql-connector"]
 trino = ["trino"]
 clickhouse = ["clickhouse-driver"]
@@ -82,7 +83,7 @@ vertica = ["vertica-python"]
 duckdb = ["duckdb"]
 all-dbs = [
     "preql", "mysql-connector-python", "psycopg2", "snowflake-connector-python", "cryptography", "presto-python-client",
-    "oracledb", "pyodbc", "trino", "clickhouse-driver", "vertica-python", "duckdb"
+    "oracledb", "pyodbc", "pymssql", "trino", "clickhouse-driver", "vertica-python", "duckdb"
 ]
 
 [tool.poetry.group.dev.dependencies]

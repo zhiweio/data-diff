@@ -34,13 +34,16 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Build the stack
-        run: docker-compose up -d mysql postgres presto trino clickhouse vertica
+        run: docker-compose up -d mysql postgres presto trino clickhouse vertica mssql
 
       - name: Install Poetry
         run: pip install poetry
 
       - name: Install package
         run: "poetry install"
+
+      - name: "Install MSSQL SDK for Python"
+        run: poetry install -E mssql
 
       # BigQuery start
     #   - id: 'auth'
@@ -68,6 +71,7 @@ jobs:
             DATADIFF_CLICKHOUSE_URI: 'clickhouse://clickhouse:Password1@localhost:9000/clickhouse'
             DATADIFF_VERTICA_URI: 'vertica://vertica:Password1@localhost:5433/vertica'
             DATADIFF_REDSHIFT_URI: '${{ secrets.DATADIFF_REDSHIFT_URI }}'
+            DATADIFF_MSSQL_URI: 'mssql://SA:Password123mssql@localhost:1433/master/dbo'
             MOTHERDUCK_TOKEN: '${{ secrets.MOTHERDUCK_TOKEN }}'
         run: |
           chmod +x tests/waiting_for_stack_up.sh

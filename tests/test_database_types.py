@@ -354,8 +354,10 @@ DATABASE_TYPES = {
     db.MsSQL: {
         "int": ["INT", "BIGINT"],
         "datetime": ["datetime2(6)"],
-        "float": ["DECIMAL(6, 2)", "FLOAT", "REAL"],
-        "uuid": ["VARCHAR(100)", "CHAR(100)", "UNIQUEIDENTIFIER"],
+        "float": ["DECIMAL(6, 2)", "FLOAT"],
+        "real": ["REAL"],
+        "uuid": ["VARCHAR(100)", "CHAR(100)"],
+        "newid": ["UNIQUEIDENTIFIER"],
         "boolean": [
             "BIT",
         ],
@@ -488,6 +490,18 @@ class UUID_Faker:
         return (uuid.uuid1(i) for i in range(self.max))
 
 
+class NEWID_Faker:
+    def __init__(self, max) -> None:
+        super().__init__()
+        self.max = max
+
+    def __len__(self) -> int:
+        return self.max
+
+    def __iter__(self) -> Iterator[str]:
+        return (str(uuid.uuid1(i)).upper() for i in range(self.max))
+
+
 class JsonFaker:
     MANUAL_FAKES = [
         '{"keyText": "text", "keyInt": 3, "keyFloat": 5.4445, "keyBoolean": true}',
@@ -508,7 +522,9 @@ TYPE_SAMPLES = {
     "int": IntFaker(N_SAMPLES),
     "datetime": DateTimeFaker(N_SAMPLES),
     "float": FloatFaker(N_SAMPLES),
+    "real": FloatFaker(N_SAMPLES),
     "uuid": UUID_Faker(N_SAMPLES),
+    "newid": NEWID_Faker(N_SAMPLES),
     "boolean": BooleanFaker(N_SAMPLES),
     "json": JsonFaker(N_SAMPLES),
 }
@@ -527,6 +543,7 @@ def _get_test_db_pairs():
             yield db.Snowflake, db_cls
     else:
         yield db.PostgreSQL, db.PostgreSQL
+        yield db.MsSQL, db.PostgreSQL
 
 
 def get_test_db_pairs():
@@ -537,6 +554,9 @@ def get_test_db_pairs():
 
 type_pairs = []
 for source_db, source_type_categories, target_db, target_type_categories in get_test_db_pairs():
+    # Avoid comparing datetime types between MsSQL and other databases due to precision conflicts
+    if id(source_db) == id(db.MsSQL) and id(source_db) != id(target_db):
+        source_type_categories.pop("datetime")
     for type_category, source_types in source_type_categories.items():  # int, datetime, ..
         for source_type in source_types:
             if type_category in target_type_categories:  # only cross-compatible types
@@ -591,7 +611,7 @@ def _insert_to_table(conn, table_path, values, coltype):
         assert BENCHMARK, "Table should've been deleted, or we should be in BENCHMARK mode"
         return
     elif current_n_rows > 0:
-        conn.query(drop_table(table_name))
+        drop_table(conn, table_path)
         _create_table_with_indexes(conn, table_path, coltype)
 
     # if BENCHMARK and N_SAMPLES > 10_000:
@@ -632,7 +652,7 @@ def _insert_to_table(conn, table_path, values, coltype):
             for i, sample in values
         ]
     # mssql represents with int
-    elif isinstance(conn, db.MsSQL) and coltype in ("BIT"):
+    elif isinstance(conn, db.MsSQL) and coltype in ("BIT",):
         values = [(i, int(sample)) for i, sample in values]
 
     insert_rows_in_batches(conn, tbl, values, columns=["id", "col"])
