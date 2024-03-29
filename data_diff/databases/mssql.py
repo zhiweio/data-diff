@@ -29,11 +29,27 @@ from data_diff.abcs.database_types import (
 )
 
 
-@import_helper("mssql")
-def import_mssql():
+def _check_odbc_driver_installed():
     import pyodbc
 
-    return pyodbc
+    if "ODBC Driver 18 for SQL Server" in pyodbc.drivers():
+        return True
+    return False
+
+
+odbc_driver_installed = _check_odbc_driver_installed()
+
+
+@import_helper("mssql")
+def import_mssql():
+    if odbc_driver_installed:
+        import pyodbc
+
+        return pyodbc
+    else:
+        import pymssql
+
+        return pymssql
 
 
 @attrs.define(frozen=False)
@@ -176,16 +192,20 @@ class MsSQL(ThreadedDatabase):
 
         args = dict(server=host, port=port, database=database, user=user, password=password, **kw)
         self._args = {k: v for k, v in args.items() if v is not None}
-        self._args["driver"] = "{ODBC Driver 18 for SQL Server}"
-
-        # TODO temp dev debug
-        self._args["TrustServerCertificate"] = "yes"
 
         try:
             self.default_database = self._args["database"]
             self.default_schema = self._args["schema"]
         except KeyError:
             raise ValueError("Specify a default database and schema.")
+
+        if odbc_driver_installed:
+            self._args["driver"] = "{ODBC Driver 18 for SQL Server}"
+
+            # TODO temp dev debug
+            self._args["TrustServerCertificate"] = "yes"
+        else:
+            self._args.pop("schema")
 
         self._mssql = None
 
