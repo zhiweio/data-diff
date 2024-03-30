@@ -43,7 +43,7 @@ jobs:
         run: "poetry install"
 
       - name: "Install MSSQL SDK for Python"
-        run: poetry add pymssql pyodbc
+        run: poetry install -E mssql
 
       # BigQuery start
     #   - id: 'auth'

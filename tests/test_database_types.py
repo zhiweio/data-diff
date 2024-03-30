@@ -543,7 +543,7 @@ def _get_test_db_pairs():
             yield db.Snowflake, db_cls
     else:
         yield db.PostgreSQL, db.PostgreSQL
-        yield db.MsSQL, db.MsSQL
+        yield db.MsSQL, db.PostgreSQL
 
 
 def get_test_db_pairs():
@@ -554,6 +554,9 @@ def get_test_db_pairs():
 
 type_pairs = []
 for source_db, source_type_categories, target_db, target_type_categories in get_test_db_pairs():
+    # Avoid comparing datetime types between MsSQL and other databases due to precision conflicts
+    if id(source_db) == id(db.MsSQL) and id(source_db) != id(target_db):
+        source_type_categories.pop("datetime")
     for type_category, source_types in source_type_categories.items():  # int, datetime, ..
         for source_type in source_types:
             if type_category in target_type_categories:  # only cross-compatible types
@@ -608,7 +611,7 @@ def _insert_to_table(conn, table_path, values, coltype):
         assert BENCHMARK, "Table should've been deleted, or we should be in BENCHMARK mode"
         return
     elif current_n_rows > 0:
-        conn.query(drop_table(table_name))
+        drop_table(conn, table_path)
         _create_table_with_indexes(conn, table_path, coltype)
 
     # if BENCHMARK and N_SAMPLES > 10_000:

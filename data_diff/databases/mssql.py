@@ -186,12 +186,14 @@ class MsSQL(ThreadedDatabase):
     default_database: str
     _args: Dict[str, Any]
     _mssql: Any
+    _autocommit: bool
 
     def __init__(self, host, port, user, password, *, database, thread_count, **kw) -> None:
         super().__init__(thread_count=thread_count)
 
         args = dict(server=host, port=port, database=database, user=user, password=password, **kw)
         self._args = {k: v for k, v in args.items() if v is not None}
+        self._autocommit = False
 
         try:
             self.default_database = self._args["database"]
@@ -205,6 +207,7 @@ class MsSQL(ThreadedDatabase):
             # TODO temp dev debug
             self._args["TrustServerCertificate"] = "yes"
         else:
+            self._autocommit = True
             self._args.pop("schema")
 
         self._mssql = None
@@ -247,3 +250,7 @@ class MsSQL(ThreadedDatabase):
             return super()._query_cursor(c, sql_code)
         except self._mssql.DatabaseError as e:
             raise QueryError(e)
+
+    @property
+    def is_autocommit(self) -> bool:
+        return self._autocommit
